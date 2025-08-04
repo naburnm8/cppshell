@@ -8,31 +8,60 @@
 #include <sstream>
 #include <utility>
 
-Error::Error(ArgumentList arguments) {
+Error::Error(ArgumentList arguments): Command(std::move(arguments)) {
     this->message = "Generic error";
-    this->arguments = std::move(arguments);
 }
 
-void Error::execute() {
+void Error::execute(Environment* env) {
     std::cout << this->message << " at: " << this->arguments.rawInfo << std::endl;
 }
 
 
-std::vector<std::string> splitBySpaces(const std::string& input) {
+std::vector<std::string> splitBySpacesRespectQuotes(const std::string& input) {
     std::vector<std::string> tokens;
-    std::istringstream iss(input);
     std::string token;
-    while (iss >> token) {
+
+    bool inQuotes = false;
+    char quoteChar = '\0';
+
+    for (int i = 0; i < input.length(); i++) {
+        const char c = input[i];
+        if (inQuotes) {
+            if (c == quoteChar) {
+                inQuotes = false;
+                tokens.push_back(token);
+                token.clear();
+            } else {
+                token += c;
+            }
+        } else {
+            if (std::isspace(c)) {
+                if (!token.empty()) {
+                    tokens.push_back(token);
+                    token.clear();
+                }
+            } else if (c == '"' || c == '\'') {
+                inQuotes = true;
+                quoteChar = c;
+            } else {
+                token += c;
+            }
+        }
+    }
+
+    if (!token.empty()) {
         tokens.push_back(token);
     }
+
     return tokens;
 
 }
 
+
 Command * mapCommand(const std::string& input) {
     ArgumentList args;
     args.rawInfo = input;
-    const auto tokens = splitBySpaces(args.rawInfo);
+    const auto tokens = splitBySpacesRespectQuotes(args.rawInfo);
 
     if (tokens.empty()) {
         return new Errors::CommandNotFound(args);
@@ -63,12 +92,28 @@ std::string Commands::Echo::prepareString() {
     return str;
 }
 
-void Commands::Echo::execute() {
+void Commands::Echo::execute(Environment* env) {
     std::cout << prepareString() << std::endl;
 }
 
-void Commands::Exit::execute() {
+void Commands::Exit::execute(Environment* env) {
     exit(0);
+}
+
+void Commands::Pwd::execute(Environment* env) {
+    std::cout << env->currentPath << std::endl;
+}
+
+void Commands::Cd::execute(Environment *env) {
+    if (this->arguments.list.size() < 2) {
+        return;
+    }
+    try {
+        std::filesystem::current_path(this->arguments.list[1].rawInfo);
+        env->currentPath = std::filesystem::current_path();
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << e.what() << std::endl;
+    }
 }
 
 ParsingException::ParsingException(const std::string &input) {
@@ -83,12 +128,12 @@ Errors::CommandNotFound::CommandNotFound(ArgumentList arguments): Error(std::mov
     this->message = "Command not found";
 }
 
-void Errors::CommandNotFound::execute() {
+void Errors::CommandNotFound::execute(Environment* env) {
     if (this->arguments.list.empty()) {
         return;
     }
     if (this->arguments.list[0].type == ArgumentType::CommandName) {
-        Error::execute();
+        Error::execute(nullptr);
     } else {
         throw ParsingException(this->arguments.rawInfo);
     }

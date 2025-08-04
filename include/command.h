@@ -4,8 +4,10 @@
 
 #ifndef COMMAND_H
 #define COMMAND_H
+#include <filesystem>
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 
@@ -26,14 +28,21 @@ struct ArgumentList {
   std::vector<Argument> list;
   std::string rawInfo;
 };
+struct Environment {
+  std::string currentShellOwner = "$>";
+  std::filesystem::path currentPath = std::filesystem::current_path();
 
+};
 class Command {
   protected:
     ArgumentList arguments;
   public:
+    explicit Command(ArgumentList args) {
+      arguments = std::move(args);
+    };
     virtual ~Command() = default;
 
-    virtual void execute() = 0;
+    virtual void execute(Environment* env) = 0;
 };
 
 class Error: public Command {
@@ -41,7 +50,7 @@ class Error: public Command {
      std::string message;
    public:
      explicit Error(ArgumentList arguments);
-     void execute() override;
+     void execute(Environment* env) override;
      ~Error() override = default;
 };
 
@@ -49,29 +58,41 @@ namespace Errors {
   class CommandNotFound final : public Error {
   public:
     explicit CommandNotFound(ArgumentList arguments);
-    void execute() override;
+    void execute(Environment* env) override;
   };
 
 }
 
+
+
 namespace Commands {
   class Echo final : public Command {
     public:
-      explicit Echo(ArgumentList args) {
-        this->arguments = std::move(args);
-      };
+      explicit Echo(ArgumentList args): Command(std::move(args)) {}
       std::string prepareString();
-      void execute() override;
+      void execute(Environment* env) override;
       ~Echo() override = default;
   };
 
   class Exit final : public Command {
     public:
-    explicit Exit(ArgumentList args) {
-      this->arguments = std::move(args);
-    };
-    void execute() override;
+    explicit Exit(ArgumentList args): Command(std::move(args)) {}
+    void execute(Environment* env) override;
     ~Exit() override = default;
+  };
+
+  class Pwd final : public Command {
+    public:
+    explicit Pwd(ArgumentList args): Command(std::move(args)) {}
+    void execute(Environment* env) override;
+    ~Pwd() override = default;
+  };
+
+  class Cd final : public Command {
+    public:
+    explicit Cd(ArgumentList args): Command(std::move(args)) {}
+    void execute(Environment* env) override;
+    ~Cd() override = default;
   };
 }
 
@@ -89,6 +110,12 @@ inline std::unordered_map<std::string, CommandFactory> commandMap = {
   },
   {"cat", [](const ArgumentList& arguments) -> Command* {
     return nullptr;
+  }},
+  {"pwd", [](const ArgumentList& arguments) -> Command* {
+    return new Commands::Pwd(arguments);
+  }},
+  {"cd", [](const ArgumentList& arguments) -> Command* {
+    return new Commands::Cd(arguments);
   }}
 };
 

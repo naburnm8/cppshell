@@ -12,14 +12,14 @@
 
 class Shell {
     std::vector<Command*> history;
-    std::string currentShellOwner = "$> ";
+    Environment env;
     Command* currentCommand = nullptr;
     // TODO: add pwd
 public:
     void loop () {
         std::string line;
         while (true) {
-            std::cout << currentShellOwner;
+            std::cout << env.currentShellOwner;
             if (!std::getline(std::cin, line)) {
                 break;
             }
@@ -30,7 +30,7 @@ public:
                 history.push_back(currentCommand);
             }
             currentCommand = mapCommand(line);
-            currentCommand->execute();
+            currentCommand->execute(&env);
         }
     }
 
