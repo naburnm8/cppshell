@@ -1,0 +1,15 @@
+cmake_minimum_required(VERSION 3.30)
+project(cppshell)
+
+set(CMAKE_CXX_STANDARD 20)
+
+add_library(command STATIC src/command.cpp)
+target_include_directories(command PUBLIC include)
+
+add_library(shell STATIC src/shell.cpp)
+target_include_directories(shell PUBLIC include)
+
+target_link_libraries(shell command)
+add_executable(cppshell src/main.cpp)
+
+target_link_libraries(cppshell shell)

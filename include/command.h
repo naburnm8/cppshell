@@ -1,0 +1,105 @@
+//
+// Created by Me on 03/08/2025.
+//
+
+#ifndef COMMAND_H
+#define COMMAND_H
+#include <functional>
+#include <string>
+#include <vector>
+
+
+enum ArgumentType{
+  Literal,
+  PassToExecutable,
+  ShellArgument,
+  CommandName,
+  Undefined,
+};
+
+struct Argument{
+  std::string rawInfo;
+  ArgumentType type;
+};
+
+struct ArgumentList {
+  std::vector<Argument> list;
+  std::string rawInfo;
+};
+
+class Command {
+  protected:
+    ArgumentList arguments;
+  public:
+    virtual ~Command() = default;
+
+    virtual void execute() = 0;
+};
+
+class Error: public Command {
+   protected:
+     std::string message;
+   public:
+     explicit Error(ArgumentList arguments);
+     void execute() override;
+     ~Error() override = default;
+};
+
+namespace Errors {
+  class CommandNotFound final : public Error {
+  public:
+    explicit CommandNotFound(ArgumentList arguments);
+    void execute() override;
+  };
+
+}
+
+namespace Commands {
+  class Echo final : public Command {
+    public:
+      explicit Echo(ArgumentList args) {
+        this->arguments = std::move(args);
+      };
+      std::string prepareString();
+      void execute() override;
+      ~Echo() override = default;
+  };
+
+  class Exit final : public Command {
+    public:
+    explicit Exit(ArgumentList args) {
+      this->arguments = std::move(args);
+    };
+    void execute() override;
+    ~Exit() override = default;
+  };
+}
+
+using CommandFactory = std::function<Command*(const ArgumentList&)>;
+
+inline std::unordered_map<std::string, CommandFactory> commandMap = {
+  {
+    "echo", [](const ArgumentList& arguments) -> Command* {
+      return new Commands::Echo(arguments);
+    }
+  },
+  { "exit", [](const ArgumentList& arguments) -> Command* {
+    return new Commands::Exit(arguments);
+  }
+  },
+  {"cat", [](const ArgumentList& arguments) -> Command* {
+    return nullptr;
+  }}
+};
+
+Command* mapCommand(const std::string& input);
+
+struct ParsingException final : public std::exception {
+  std::string input;
+  explicit ParsingException(const std::string &input);
+  [[nodiscard]] const char* what() const noexcept override;
+};
+
+
+
+#endif
