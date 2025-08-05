@@ -6,6 +6,7 @@
 #define COMMAND_H
 #include <filesystem>
 #include <functional>
+#include <iostream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -29,13 +30,16 @@ struct ArgumentList {
   std::string rawInfo;
 };
 struct Environment {
-  std::string currentShellOwner = "$>";
+  std::string currentShellOwner = "$";
   std::filesystem::path currentPath = std::filesystem::current_path();
 
 };
 class Command {
   protected:
     ArgumentList arguments;
+    void displayWrongArgumentsMessage() {
+      std::cout << "Wrong arguments configuration" << std::endl;
+    }
   public:
     explicit Command(ArgumentList args) {
       arguments = std::move(args);
@@ -94,6 +98,12 @@ namespace Commands {
     void execute(Environment* env) override;
     ~Cd() override = default;
   };
+  class Cat final : public Command {
+    public:
+    explicit Cat(ArgumentList args): Command(std::move(args)) {}
+    void execute(Environment* env) override;
+    ~Cat() override = default;
+  };
 }
 
 using CommandFactory = std::function<Command*(const ArgumentList&)>;
@@ -109,7 +119,7 @@ inline std::unordered_map<std::string, CommandFactory> commandMap = {
   }
   },
   {"cat", [](const ArgumentList& arguments) -> Command* {
-    return nullptr;
+    return new Commands::Cat(arguments);
   }},
   {"pwd", [](const ArgumentList& arguments) -> Command* {
     return new Commands::Pwd(arguments);

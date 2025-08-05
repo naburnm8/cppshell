@@ -5,8 +5,8 @@
 
 #include <functional>
 #include <iostream>
-#include <sstream>
 #include <utility>
+#include <fstream>
 
 Error::Error(ArgumentList arguments): Command(std::move(arguments)) {
     this->message = "Generic error";
@@ -22,19 +22,42 @@ std::vector<std::string> splitBySpacesRespectQuotes(const std::string& input) {
     std::string token;
 
     bool inQuotes = false;
+    bool escapeSuspicion = false;
     char quoteChar = '\0';
 
     for (int i = 0; i < input.length(); i++) {
         const char c = input[i];
         if (inQuotes) {
+            if (escapeSuspicion) {
+                if (c == '"' || c == '\'') {
+                    token += c;
+                } else {
+                    token += '\\';
+                    token += c;
+                }
+                escapeSuspicion = false;
+                continue;
+            }
             if (c == quoteChar) {
                 inQuotes = false;
                 tokens.push_back(token);
                 token.clear();
-            } else {
+            } else if (c == '\\') {
+                escapeSuspicion = true;
+            }
+            else {
                 token += c;
             }
-        } else {
+        } else if (escapeSuspicion) {
+            if (c == '"' || c == '\'') {
+                token += c;
+            } else {
+                token += '\\';
+                token += c;
+            }
+            escapeSuspicion = false;
+        }
+        else {
             if (std::isspace(c)) {
                 if (!token.empty()) {
                     tokens.push_back(token);
@@ -43,6 +66,8 @@ std::vector<std::string> splitBySpacesRespectQuotes(const std::string& input) {
             } else if (c == '"' || c == '\'') {
                 inQuotes = true;
                 quoteChar = c;
+            } else if (c == '\\') {
+                escapeSuspicion = true;
             } else {
                 token += c;
             }
@@ -114,6 +139,28 @@ void Commands::Cd::execute(Environment *env) {
     } catch (const std::filesystem::filesystem_error& e) {
         std::cerr << e.what() << std::endl;
     }
+}
+
+void Commands::Cat::execute(Environment* env) {
+    if (this->arguments.list.size() < 2) {
+        displayWrongArgumentsMessage();
+        return;
+    }
+    try {
+        if (std::ifstream file(this->arguments.list[1].rawInfo); file.is_open()) {
+            std::string line;
+            while (std::getline(file, line)) {
+                std::cout << line << std::endl;
+            }
+            file.close();
+        } else {
+            throw std::filesystem::filesystem_error("File is not open", std::error_code(-1, std::system_category()));
+        }
+
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << e.what() << std::endl;
+    }
+
 }
 
 ParsingException::ParsingException(const std::string &input) {
