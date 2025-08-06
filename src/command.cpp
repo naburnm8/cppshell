@@ -163,6 +163,32 @@ void Commands::Cat::execute(Environment* env) {
 
 }
 
+void displayContents(const std::filesystem::path& path) {
+    try {
+        std::cout << "Contents of: " << path << std::endl;
+        for (const auto& entry : std::filesystem::directory_iterator(path)) {
+            if (entry.is_regular_file()) {
+                std::cout << "  FILE " << entry.path().filename() << " " << entry.file_size() << " B" << std::endl;
+            } else if (entry.is_directory()) {
+                std::cout << "FOLDER " << entry.path().filename() << std::endl;
+            }
+        }
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << e.what() << std::endl;
+    }
+}
+
+void Commands::Dir::execute(Environment *env) {
+    if (this->arguments.list.size() < 2) {
+        displayContents(env->currentPath);
+    }
+    else {
+        for (int i = 1; i < this->arguments.list.size(); i++) {
+            displayContents(this->arguments.list[i].rawInfo);
+        }
+    }
+}
+
 ParsingException::ParsingException(const std::string &input) {
     this->input = input;
 }

@@ -104,6 +104,13 @@ namespace Commands {
     void execute(Environment* env) override;
     ~Cat() override = default;
   };
+
+  class Dir final : public Command {
+    public:
+    explicit Dir(ArgumentList args): Command(std::move(args)) {}
+    void execute(Environment* env) override;
+    ~Dir() override = default;
+  };
 }
 
 using CommandFactory = std::function<Command*(const ArgumentList&)>;
@@ -126,6 +133,12 @@ inline std::unordered_map<std::string, CommandFactory> commandMap = {
   }},
   {"cd", [](const ArgumentList& arguments) -> Command* {
     return new Commands::Cd(arguments);
+  }},
+  {"ls", [](const ArgumentList& arguments) -> Command* {
+    return new Commands::Dir(arguments);
+  }},
+  {"dir", [](const ArgumentList& arguments) -> Command* {
+    return new Commands::Dir(arguments);
   }}
 };
 
