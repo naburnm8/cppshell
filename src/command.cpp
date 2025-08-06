@@ -83,7 +83,7 @@ std::vector<std::string> splitBySpacesRespectQuotes(const std::string& input) {
 }
 
 
-Command * mapCommand(const std::string& input) {
+Command * mapCommand(const std::string& input, Environment* env = nullptr) {
     ArgumentList args;
     args.rawInfo = input;
     const auto tokens = splitBySpacesRespectQuotes(args.rawInfo);
@@ -103,6 +103,15 @@ Command * mapCommand(const std::string& input) {
     if (it != commandMap.end()) {
         return it->second(args);
     }
+    if (env != nullptr) {
+        for (const auto& registry: env->additionalCommandRegistries) {
+            auto itInside = registry.find(commandName);
+            if (itInside != registry.end()) {
+                return itInside->second(args);
+            }
+        }
+    }
+
     return new Errors::CommandNotFound(args);
 }
 

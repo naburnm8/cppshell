@@ -17,7 +17,7 @@ void Shell::loop() {
         if (currentCommand != nullptr) {
             history.push_back(currentCommand);
         }
-        currentCommand = mapCommand(line);
+        currentCommand = mapCommand(line, &env);
         currentCommand->execute(&env);
     }
 }

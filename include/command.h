@@ -12,6 +12,7 @@
 #include <vector>
 
 
+
 enum ArgumentType{
   Literal,
   PassToExecutable,
@@ -29,9 +30,15 @@ struct ArgumentList {
   std::vector<Argument> list;
   std::string rawInfo;
 };
+
+class Command;
+
+using CommandFactory = std::function<Command*(const ArgumentList&)>;
+
 struct Environment {
   std::string currentShellOwner = "$";
   std::filesystem::path currentPath = std::filesystem::current_path();
+  std::vector<std::unordered_map<std::string, CommandFactory>> additionalCommandRegistries;
 
 };
 class Command {
@@ -48,6 +55,8 @@ class Command {
 
     virtual void execute(Environment* env) = 0;
 };
+
+
 
 class Error: public Command {
    protected:
@@ -113,7 +122,7 @@ namespace Commands {
   };
 }
 
-using CommandFactory = std::function<Command*(const ArgumentList&)>;
+
 
 inline std::unordered_map<std::string, CommandFactory> commandMap = {
   {
@@ -142,7 +151,7 @@ inline std::unordered_map<std::string, CommandFactory> commandMap = {
   }}
 };
 
-Command* mapCommand(const std::string& input);
+Command* mapCommand(const std::string& input, Environment* env);
 
 struct ParsingException final : public std::exception {
   std::string input;
