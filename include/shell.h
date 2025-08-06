@@ -16,6 +16,7 @@ class Shell {
     Command* currentCommand = nullptr;
     // TODO: add pwd
 public:
+    Shell();
     void loop ();
 };
 

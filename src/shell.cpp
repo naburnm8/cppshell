@@ -3,6 +3,11 @@
 //
 
 #include "shell.h"
+#include "fs_manipulation.h"
+
+Shell::Shell() {
+    env.additionalCommandRegistries.push_back(&fsRegistry);
+}
 
 void Shell::loop() {
     std::string line;

@@ -104,9 +104,9 @@ Command * mapCommand(const std::string& input, Environment* env = nullptr) {
         return it->second(args);
     }
     if (env != nullptr) {
-        for (const auto& registry: env->additionalCommandRegistries) {
-            auto itInside = registry.find(commandName);
-            if (itInside != registry.end()) {
+        for (const auto registry: env->additionalCommandRegistries) {
+            auto itInside = registry->find(commandName);
+            if (itInside != registry->end()) {
                 return itInside->second(args);
             }
         }

@@ -38,7 +38,7 @@ using CommandFactory = std::function<Command*(const ArgumentList&)>;
 struct Environment {
   std::string currentShellOwner = "$";
   std::filesystem::path currentPath = std::filesystem::current_path();
-  std::vector<std::unordered_map<std::string, CommandFactory>> additionalCommandRegistries;
+  std::vector<std::unordered_map<std::string, CommandFactory>*> additionalCommandRegistries;
 
 };
 class Command {
