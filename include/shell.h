@@ -14,7 +14,6 @@ class Shell {
     std::vector<Command*> history;
     Environment env;
     Command* currentCommand = nullptr;
-    // TODO: add pwd
 public:
     Shell();
     void loop ();

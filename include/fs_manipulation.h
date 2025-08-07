@@ -6,6 +6,19 @@
 #define FS_MANIPULATION_H
 #include "command.h"
 
+class Wildcard {
+    std::string name;
+    std::string extension;
+public:
+    bool isWildcard(const std::string &input);
+    [[nodiscard]] std::string getName() const {
+        return this->name;
+    };
+    [[nodiscard]] std::string getExtension() const {
+        return this->extension;
+    }
+};
+
 namespace Commands {
     class Rem final : public Command {
     public:
