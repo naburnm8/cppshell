@@ -2,6 +2,7 @@
 // Created by Me on 06/08/2025.
 //
 
+#include <fstream>
 #include "fs_manipulation.h"
 
 bool Wildcard::isWildcard(const std::string &input) {
@@ -94,22 +95,50 @@ void Commands::RemTree::execute(Environment *env) {
         if (!std::filesystem::remove(arguments.list[1].rawInfo)) {
             throw std::filesystem::filesystem_error("Directory was not deleted", std::error_code(-1, std::system_category()));
         }
-        std::cout << "Directory " << std::filesystem::path(arguments.list[1].rawInfo).filename().string() << "was successfully deleted" << std::endl;
+        std::cout << "Directory " << std::filesystem::path(arguments.list[1].rawInfo).filename().string() << " was successfully deleted" << std::endl;
     } catch (std::filesystem::filesystem_error &e) {
         std::cerr << e.what() << std::endl;
     }
 }
 
 void Commands::MkDir::execute(Environment *env) {
+    if (this->arguments.list.size() < 2) {
+        displayWrongArgumentsMessage();
+        return;
+    }
+
+    try {
+        std::filesystem::create_directory(this->arguments.list[1].rawInfo);
+    } catch (std::filesystem::filesystem_error &e) {
+        std::cerr << e.what() << std::endl;
+    }
 }
 
 void Commands::MkFile::execute(Environment *env) {
+    if (this->arguments.list.size() < 2) {
+        displayWrongArgumentsMessage();
+        return;
+    }
+
+    try {
+        std::ofstream stream(this->arguments.list[1].rawInfo);
+        if (stream.is_open()) {
+            stream << "";
+            stream.close();
+        } else {
+            throw std::filesystem::filesystem_error("File was not open", std::error_code(-1, std::system_category()));
+        }
+    } catch (std::filesystem::filesystem_error &e) {
+        std::cerr << e.what() << std::endl;
+    }
 }
 
 void Commands::Copy::execute(Environment *env) {
+
 }
 
 void Commands::Paste::execute(Environment *env) {
+
 }
 
 
