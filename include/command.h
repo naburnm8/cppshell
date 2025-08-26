@@ -17,6 +17,8 @@ enum ArgumentType{
   Literal,
   PassToExecutable,
   ShellArgument,
+  Ignored,
+  RedirectSymbol,
   CommandName,
   Undefined,
 };
