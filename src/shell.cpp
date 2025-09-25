@@ -3,10 +3,14 @@
 //
 
 #include "shell.h"
+
+#include <hex_cat.h>
+
 #include "fs_manipulation.h"
 
 Shell::Shell() {
     env.additionalCommandRegistries.push_back(&fsRegistry);
+    env.additionalCommandRegistries.push_back(&hexCatRegistry);
 }
 
 void Shell::loop() {

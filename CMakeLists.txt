@@ -18,7 +18,10 @@ target_include_directories(shell PUBLIC include)
 add_library(args STATIC src/arguments.cpp)
 target_include_directories(args PUBLIC include)
 
-target_link_libraries(shell command fs_manipulation redirect args)
+add_library(hex_cat STATIC src/hex_cat.cpp)
+target_include_directories(hex_cat PUBLIC include)
+
+target_link_libraries(shell command fs_manipulation redirect args hex_cat)
 add_executable(cppshell src/main.cpp)
 
 target_link_libraries(cppshell shell)
