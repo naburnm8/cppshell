@@ -12,8 +12,12 @@
 
 class Shell {
     std::vector<Command*> history;
+    std::vector<ArgumentList*> argumentHistory;
+    std::vector<ExecutionEffect*> effectHistory;
     Environment env;
     Command* currentCommand = nullptr;
+    ArgumentList* currentArgList = nullptr;
+    ExecutionEffect* currentExecutionEffect = nullptr;
 public:
     Shell();
     void loop ();

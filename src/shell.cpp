@@ -22,7 +22,25 @@ void Shell::loop() {
         if (currentCommand != nullptr) {
             history.push_back(currentCommand);
         }
-        currentCommand = mapCommand(line, &env);
+        if (currentArgList != nullptr) {
+            argumentHistory.push_back(currentArgList);
+        }
+        if (currentExecutionEffect != nullptr) {
+            effectHistory.push_back(currentExecutionEffect);
+        }
+
+        currentArgList = mapArguments(line, &env);
+        currentCommand = createCommand(currentArgList, &env);
+        currentExecutionEffect = createEffect(currentArgList, &env);
+
+        if (currentExecutionEffect != nullptr) {
+            currentExecutionEffect->commenceEffect();
+        }
+
         currentCommand->execute(&env);
+
+        if (currentExecutionEffect != nullptr) {
+            currentExecutionEffect->cleanup();
+        }
     }
 }

@@ -10,28 +10,10 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <execution_effect.h>
+#include <arguments.h>
 
 
-
-enum ArgumentType{
-  Literal,
-  PassToExecutable,
-  ShellArgument,
-  Ignored,
-  RedirectSymbol,
-  CommandName,
-  Undefined,
-};
-
-struct Argument{
-  std::string rawInfo;
-  ArgumentType type;
-};
-
-struct ArgumentList {
-  std::vector<Argument> list;
-  std::string rawInfo;
-};
 
 class Command;
 
@@ -41,24 +23,38 @@ struct Environment {
   std::string currentShellOwner = "$";
   std::filesystem::path currentPath = std::filesystem::current_path();
   std::vector<std::unordered_map<std::string, CommandFactory>*> additionalCommandRegistries;
+  std::vector<std::unordered_map<std::string, EffectFactory>*> additionalEffectRegistries;
 
 };
+
+ArgumentList parseArguments(const std::vector<std::string> &tokens, Environment* env = nullptr);
+
 class Command {
   protected:
     ArgumentList arguments;
-    void displayWrongArgumentsMessage() {
+    void displayWrongArgumentsMessage() const {
       std::cout << "Wrong arguments configuration" << std::endl;
+      std::cout << arguments.rawInfo << std::endl;
     }
   public:
-    explicit Command(ArgumentList args) {
-      arguments = std::move(args);
+    explicit Command(const ArgumentList& args) {
+      arguments = args;
     };
     virtual ~Command() = default;
 
     virtual void execute(Environment* env) = 0;
+
+    ArgumentList* getArguments() { return &arguments; }
 };
 
-
+class CommandExecutable {
+  Command* command;
+  std::vector<ExecutionEffect*> executionEffects;
+  Environment* environment;
+public:
+  explicit CommandExecutable(const std::string& line);
+  void execute();
+};
 
 class Error: public Command {
    protected:
@@ -78,7 +74,10 @@ namespace Errors {
 
 }
 
+Command* createCommand(const ArgumentList* args, Environment* env = nullptr);
 
+ExecutionEffect* createEffect(ArgumentList* args, Environment* env = nullptr);
+ArgumentList* mapArguments(const std::string& input, Environment* env = nullptr);
 
 namespace Commands {
   class Echo final : public Command {

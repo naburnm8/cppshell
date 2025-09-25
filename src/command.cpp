@@ -2,11 +2,28 @@
 // Created by Me on 03/08/2025.
 //
 #include "command.h"
+#include "execution_effect.h"
 
 #include <functional>
 #include <iostream>
 #include <utility>
 #include <fstream>
+
+CommandExecutable::CommandExecutable(const std::string &line) {
+
+}
+
+void CommandExecutable::execute() {
+    for (const auto &effect: executionEffects) {
+        effect->commenceEffect();
+    }
+
+    command->execute(environment);
+
+    for (const auto &effect: executionEffects) {
+        effect->cleanup();
+    }
+}
 
 Error::Error(ArgumentList arguments): Command(std::move(arguments)) {
     this->message = "Generic error";
@@ -82,6 +99,92 @@ std::vector<std::string> splitBySpacesRespectQuotes(const std::string& input) {
 
 }
 
+ArgumentList parseArguments(const std::vector<std::string> &tokens, Environment* env) {
+    ArgumentList args;
+
+    const std::string& commandName = tokens[0];
+    args.list.push_back({commandName, ArgumentType::CommandName});
+
+    bool reachedEffectArguments = false;
+    for (int i = 1; i < tokens.size(); i++) {
+        if (!reachedEffectArguments) {
+            auto it = effectsRegistry.find(tokens[i]);
+            if (it == effectsRegistry.end()) {
+                for (const auto registry: env->additionalEffectRegistries) {
+                    it = registry->find(tokens[i]);
+                    if (it != registry->end()) {
+                        break;
+                    }
+                }
+            }
+            if (it != effectsRegistry.end()) {
+                reachedEffectArguments = true;
+                args.list.push_back({tokens[i], ArgumentType::EffectSymbol});
+            } else {
+                args.list.push_back({tokens[i], ArgumentType::GenericArgument});
+            }
+        } else {
+            args.list.push_back({tokens[i], ArgumentType::EffectGenericArgument});
+        }
+    }
+
+    return args;
+}
+
+ArgumentList* mapArguments(const std::string& input, Environment* env) {
+    const auto tokens = splitBySpacesRespectQuotes(input);
+    ArgumentList args = parseArguments(tokens, env);
+    args.rawInfo = input;
+    return new ArgumentList(args);
+}
+
+Command* createCommand(const ArgumentList* args, Environment* env) {
+    if (args->list.empty()) {
+        return new Errors::CommandNotFound(*args);
+    }
+    auto commandName = args->list[0].rawInfo;
+    auto it = commandMap.find(commandName);
+    if (it != commandMap.end()) {
+        return it->second(*args);
+    }
+    if (env != nullptr) {
+        for (const auto registry: env->additionalCommandRegistries) {
+            auto itAdditional = registry->find(commandName);
+            if (itAdditional != registry->end()) {
+                return itAdditional->second(*args);
+            }
+        }
+    }
+    return new Errors::CommandNotFound(*args);
+}
+
+
+ExecutionEffect* createEffect(ArgumentList* args, Environment* env) {
+    std::string effectName;
+    for (const auto&[rawInfo, type]: args->list) {
+        if (type == ArgumentType::EffectSymbol) {
+            effectName = rawInfo;
+            break;
+        }
+    }
+    if (effectName.empty()) {
+        return nullptr;
+    }
+    auto it = effectsRegistry.find(effectName);
+    if (it != effectsRegistry.end()) {
+        return it->second(*args);
+    }
+    if (env != nullptr) {
+        for (const auto registry: env->additionalEffectRegistries) {
+            auto it = registry->find(effectName);
+            if (it != registry->end()) {
+                return it->second(*args);
+            }
+        }
+    }
+    return nullptr;
+}
+
 
 Command * mapCommand(const std::string& input, Environment* env = nullptr) {
     ArgumentList args;
@@ -96,7 +199,7 @@ Command * mapCommand(const std::string& input, Environment* env = nullptr) {
     args.list.push_back({commandName, ArgumentType::CommandName});
 
     for (int i = 1; i < tokens.size(); i++) {
-        args.list.push_back({tokens[i], ArgumentType::Undefined});
+        args.list.push_back({tokens[i], ArgumentType::GenericArgument});
     }
 
     auto it = commandMap.find(commandName);
@@ -118,7 +221,7 @@ Command * mapCommand(const std::string& input, Environment* env = nullptr) {
 std::string Commands::Echo::prepareString() {
     std::string str;
     for (auto &[rawInfo, type] : this->arguments.list) {
-        if (type == ArgumentType::CommandName) {
+        if (type != ArgumentType::GenericArgument) {
             continue;
         }
         str += rawInfo + " ";
